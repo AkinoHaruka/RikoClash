@@ -7,6 +7,8 @@ import com.github.kr328.clash.service.PreferenceProvider
 import com.github.kr328.clash.service.model.AccessControlMode
 import java.util.*
 
+private const val DEFAULT_VPN_ROUTE_EXCLUSIONS = "107.172.61.213/32"
+
 class ServiceStore(context: Context) {
     private val store = Store(
         PreferenceProvider
@@ -59,6 +61,12 @@ class ServiceStore(context: Context) {
     var tunStackMode by store.string(
         key = "tun_stack_mode",
         defaultValue = "system"
+    )
+
+    var vpnRouteExclusions: String? by store.typedString(
+        key = "vpn_route_exclusions",
+        from = { it.ifBlank { DEFAULT_VPN_ROUTE_EXCLUSIONS } },
+        to = { it ?: DEFAULT_VPN_ROUTE_EXCLUSIONS }
     )
 
     var dynamicNotification by store.boolean(

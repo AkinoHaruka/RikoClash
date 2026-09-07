@@ -10,6 +10,9 @@
     <string name="behavior">行为</string>
     <string name="bypass_private_network">绕过私有网络</string>
     <string name="bypass_private_network_summary">绕过私有网络地址</string>
+    <string name="vpn_route_exclusions">VPN 路由排除</string>
+    <string name="vpn_route_exclusions_placeholder">不经过 VPN 的 CIDR 地址</string>
+    <string name="vpn_route_exclusions_empty">没有路由排除</string>
     <string name="cancel">取消</string>
     <string name="clash_logcat">Clash 日志捕捉工具</string>
     <string name="create_profile">创建配置</string>

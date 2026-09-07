@@ -63,6 +63,15 @@ class NetworkSettingsDesign(
                 configure = vpnDependencies::add,
             )
 
+            editableText(
+                value = srvStore::vpnRouteExclusions,
+                adapter = NullableTextAdapter.String,
+                title = R.string.vpn_route_exclusions,
+                placeholder = R.string.vpn_route_exclusions_placeholder,
+                empty = R.string.vpn_route_exclusions_empty,
+                configure = vpnDependencies::add,
+            )
+
             switch(
                 value = srvStore::dnsHijacking,
                 title = R.string.dns_hijacking,

@@ -14,7 +14,8 @@ import com.github.kr328.clash.service.clash.module.*
 import com.github.kr328.clash.service.model.AccessControlMode
 import com.github.kr328.clash.service.store.ServiceStore
 import com.github.kr328.clash.service.util.cancelAndJoinBlocking
-import com.github.kr328.clash.service.util.parseCIDR
+import com.github.kr328.clash.service.util.routeComplement
+import com.github.kr328.clash.service.util.routeSubtract
 import com.github.kr328.clash.service.util.sendClashStarted
 import com.github.kr328.clash.service.util.sendClashStopped
 import kotlinx.coroutines.*
@@ -132,13 +133,16 @@ class TunService : VpnService(), CoroutineScope by CoroutineScope(Dispatchers.De
 
             // Route
             if (store.bypassPrivateNetwork) {
-                resources.getStringArray(R.array.bypass_private_route).map(::parseCIDR).forEach {
-                    addRoute(it.ip, it.prefix)
-                }
-                if (store.allowIpv6) {
-                    resources.getStringArray(R.array.bypass_private_route6).map(::parseCIDR).forEach {
-                        addRoute(it.ip, it.prefix)
-                    }
+                val publicRoutes = resources.getStringArray(R.array.bypass_private_route).toList() +
+                    if (store.allowIpv6) resources.getStringArray(R.array.bypass_private_route6).toList() else emptyList()
+
+                runCatching {
+                    routeSubtract(publicRoutes, store.vpnRouteExclusions)
+                }.getOrElse {
+                    Log.w("Invalid VPN route exclusion; using default private bypass routes", it)
+                    routeSubtract(publicRoutes, null)
+                }.forEach {
+                    addRoute(it.address, it.prefix)
                 }
 
                 // Route of virtual DNS
@@ -147,10 +151,16 @@ class TunService : VpnService(), CoroutineScope by CoroutineScope(Dispatchers.De
                     addRoute(TUN_DNS6, 128)
                 }
             } else {
-                addRoute(NET_ANY, 0)
-                if (store.allowIpv6) {
-                    addRoute(NET_ANY6, 0)
+                val routes = runCatching {
+                    routeComplement(store.vpnRouteExclusions)
+                }.getOrElse {
+                    Log.w("Invalid VPN route exclusion; using default routes", it)
+                    routeComplement(null)
                 }
+
+                routes
+                    .filter { it.address.address.size == 4 || store.allowIpv6 }
+                    .forEach { addRoute(it.address, it.prefix) }
             }
 
             // Access Control
