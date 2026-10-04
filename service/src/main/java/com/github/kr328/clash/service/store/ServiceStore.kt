@@ -60,7 +60,7 @@ class ServiceStore(context: Context) {
 
     var tunStackMode by store.string(
         key = "tun_stack_mode",
-        defaultValue = "system"
+        defaultValue = "mips"
     )
 
     var vpnRouteExclusions: String? by store.typedString(
