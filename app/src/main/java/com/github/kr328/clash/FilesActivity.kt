@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.OnBackPressedCallback
 import androidx.core.content.ContextCompat
 import com.github.kr328.clash.common.util.grantPermissions
 import com.github.kr328.clash.common.util.ticker
@@ -24,6 +25,17 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 
 class FilesActivity : BaseActivity<FilesDesign>() {
+    override fun onCreate(savedInstanceState: android.os.Bundle?) {
+        super.onCreate(savedInstanceState)
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                val current = design
+                if (current == null) finish()
+                else current.requests.trySend(FilesDesign.Request.PopStack)
+            }
+        })
+    }
+
     override suspend fun main() {
         val uuid = intent.uuid ?: return finish()
         val profile = withProfile { queryByUUID(uuid) } ?: return finish()
@@ -120,10 +132,6 @@ class FilesActivity : BaseActivity<FilesDesign>() {
                 }
             }
         }
-    }
-
-    override fun onBackPressed() {
-        design?.requests?.trySend(FilesDesign.Request.PopStack)
     }
 
     private suspend fun FilesDesign.fetch(client: FilesClient, stack: Stack<String>, root: String) {

@@ -1,0 +1,425 @@
+{
+  "status": "incomplete",
+  "route": "phone -> tx.vpn.riko.asia (international EdgeOne) -> dir.vpn.riko.asia -> target",
+  "method": "Windows curl via ADB-forwarded phone RikoClash mixed port 7890; MATCH routes through manually selected tx node; normal TLS validation",
+  "target": "https://speed.cloudflare.com/__down?bytes=10000000 and /__up (test destination only; not part of tx ingress/origin route)",
+  "phone": "10.31.3.223:44007",
+  "phoneResults": [
+    {
+      "node": "tx-ws",
+      "direction": "download",
+      "http": 200,
+      "bytes": 10000000,
+      "seconds": 4.840386,
+      "bytesPerSecond": 2065952,
+      "complete": true
+    },
+    {
+      "node": "tx-ws",
+      "direction": "upload",
+      "http": 200,
+      "bytes": 10000000,
+      "seconds": 3.925784,
+      "bytesPerSecond": 2547263,
+      "complete": true
+    },
+    {
+      "node": "tx-grpc",
+      "test": "google search baseline",
+      "http": 0,
+      "bytes": 0,
+      "seconds": 20.009544,
+      "complete": false
+    },
+    {
+      "node": "tx-grpc",
+      "test": "download baseline",
+      "http": 0,
+      "bytes": 0,
+      "seconds": 20.002337,
+      "complete": false
+    },
+    {
+      "node": "tx-grpc",
+      "test": "google search after gRPC switch enabled and phone VPN restarted",
+      "http": 0,
+      "bytes": 0,
+      "seconds": 20.005598,
+      "complete": false
+    },
+    {
+      "node": "tx-grpc",
+      "test": "download after gRPC switch enabled",
+      "http": 0,
+      "bytes": 0,
+      "seconds": 25.000935,
+      "complete": false
+    },
+    {
+      "node": "tx-xhttp-h2",
+      "direction": "download",
+      "http": 200,
+      "bytes": 10000000,
+      "seconds": 15.675048,
+      "bytesPerSecond": 637956,
+      "complete": true
+    },
+    {
+      "node": "tx-xhttp-h2",
+      "direction": "upload",
+      "http": 0,
+      "bytesSentToLocalProxy": 10000000,
+      "seconds": 17.030275,
+      "curlExit": 56,
+      "complete": false
+    },
+    {
+      "node": "tx-xhttp-h2",
+      "direction": "upload",
+      "http": 0,
+      "bytesSentToLocalProxy": 1000000,
+      "seconds": 19.553497,
+      "curlExit": 52,
+      "complete": false
+    },
+    {
+      "node": "tx-xhttp-h2",
+      "direction": "download",
+      "condition": "compression disabled for tx host",
+      "http": 200,
+      "bytes": 10000000,
+      "seconds": 6.28653,
+      "bytesPerSecond": 1590703,
+      "complete": true
+    },
+    {
+      "node": "tx-xhttp-h2",
+      "direction": "upload",
+      "condition": "HTTP1 origin-pull and compression disabled",
+      "http": 0,
+      "bytesSentToLocalProxy": 10000000,
+      "seconds": 19.907017,
+      "curlExit": 56,
+      "complete": false
+    },
+    {
+      "node": "tx-xhttp-h2",
+      "direction": "upload",
+      "condition": "temporary 65536 byte packet setting in imported profile; profile reloaded; not retained",
+      "http": 0,
+      "bytesSentToLocalProxy": 7929701,
+      "seconds": 16.949444,
+      "curlExit": 56,
+      "complete": false
+    },
+    {
+      "node": "tx-xhttp-h2",
+      "direction": "download",
+      "condition": "Android RikoClash proxy-only; system VPN routing disabled",
+      "http": 200,
+      "bytes": 10000000,
+      "seconds": 7.370914,
+      "bytesPerSecond": 1356684,
+      "complete": true
+    },
+    {
+      "node": "tx-xhttp-h2",
+      "direction": "upload",
+      "condition": "Android RikoClash proxy-only; retry after handshake failure",
+      "http": 200,
+      "bytes": 10000000,
+      "seconds": 15.599349,
+      "bytesPerSecond": 641052,
+      "complete": true
+    },
+    {
+      "node": "tx-xhttp-h2",
+      "direction": "upload",
+      "condition": "system VPN routing restored; attempt 1",
+      "http": 0,
+      "bytes": 0,
+      "seconds": 5.032495,
+      "complete": false
+    },
+    {
+      "node": "tx-xhttp-h2",
+      "direction": "upload",
+      "condition": "system VPN routing restored; attempt 2",
+      "http": 0,
+      "bytes": 0,
+      "seconds": 5.065982,
+      "complete": false
+    },
+    {
+      "node": "tx-xhttp-h2",
+      "direction": "upload",
+      "condition": "full VPN; dial address temporarily pinned to EdgeOne IP; original SNI/Host",
+      "http": 0,
+      "bytes": 0,
+      "seconds": 5.050889,
+      "complete": false
+    },
+    {
+      "node": "tx-xhttp-h2",
+      "condition": "temporary Chrome client fingerprint; VPN",
+      "direction": "upload",
+      "http": 0,
+      "bytes": 0,
+      "seconds": 5.063587,
+      "complete": false
+    },
+    {
+      "node": "tx-xhttp-h2",
+      "condition": "temporary tcp-concurrent true; VPN",
+      "direction": "upload",
+      "http": 0,
+      "bytes": 0,
+      "seconds": 5.020015,
+      "complete": false
+    },
+    {
+      "node": "tx-ws",
+      "condition": "temporary tcp-concurrent true; VPN",
+      "test": "Google search",
+      "http": 200,
+      "bytes": 91752,
+      "seconds": 5.963664,
+      "complete": true
+    },
+    {
+      "node": "tx-ws",
+      "condition": "temporary tcp-concurrent true; VPN",
+      "direction": "upload",
+      "http": 200,
+      "bytes": 10000000,
+      "seconds": 3.667467,
+      "bytesPerSecond": 2726679,
+      "complete": true
+    },
+    {
+      "node": "tx-xhttp-h2",
+      "condition": "diagnostic ALPN http/1.1 only; VPN; not H2 acceptance",
+      "direction": "upload",
+      "http": 0,
+      "bytes": 0,
+      "seconds": 5.039295,
+      "complete": false
+    },
+    {
+      "node": "tx-xhttp-h2",
+      "condition": "diagnostic ALPN http/1.1 only; VPN; retry; not H2 acceptance",
+      "direction": "upload",
+      "http": 0,
+      "bytes": 0,
+      "seconds": 5.105622,
+      "complete": false
+    },
+    {
+      "node": "tx-xhttp-h2",
+      "test": "core controller delay; Google 204; 15 second timeout",
+      "delayMs": 5833,
+      "seconds": 6.578,
+      "complete": true
+    },
+    {
+      "node": "tx-ws",
+      "test": "core controller delay; Google 204; 15 second timeout",
+      "delayMs": 5622,
+      "seconds": 5.641,
+      "complete": true
+    },
+    {
+      "node": "tx-grpc",
+      "test": "core controller delay; original EdgeOne gRPC switch off; 15 second timeout",
+      "http": 503,
+      "seconds": 10.922,
+      "complete": false
+    },
+    {
+      "node": "tx-xhttp-h2",
+      "direction": "upload",
+      "condition": "temporary reuse-settings max-connections 1 max-concurrency 16; VPN",
+      "http": 0,
+      "bytesSentToLocalProxy": 10000000,
+      "seconds": 23.361571,
+      "complete": false
+    },
+    {
+      "node": "tx-xhttp-h2",
+      "direction": "upload",
+      "condition": "same reuse-settings; VPN",
+      "http": 200,
+      "bytes": 1000000,
+      "seconds": 5.431202,
+      "bytesPerSecond": 184121,
+      "complete": true
+    },
+    {
+      "node": "tx-xhttp-h2",
+      "direction": "upload",
+      "condition": "same reuse-settings; VPN; 10MB retry",
+      "http": 0,
+      "bytesSentToLocalProxy": 10000000,
+      "seconds": 16.95878,
+      "complete": false
+    },
+    {
+      "node": "tx-xhttp-h2",
+      "direction": "upload",
+      "condition": "reuse-settings plus packet interval 200ms; warmed via 15sec Google204 probe (delay1586ms); VPN",
+      "http": 0,
+      "bytesSentToLocalProxy": 10000000,
+      "seconds": 16.606872,
+      "complete": false
+    }
+  ],
+  "independentWindowsCoreResults": [
+    {
+      "node": "tx-ws",
+      "test": "google search",
+      "http": 200,
+      "bytes": 91630,
+      "seconds": 1.948834,
+      "complete": true
+    },
+    {
+      "node": "tx-ws",
+      "direction": "upload",
+      "http": 200,
+      "bytes": 10000000,
+      "seconds": 4.788199,
+      "bytesPerSecond": 2088469,
+      "complete": true
+    },
+    {
+      "node": "tx-xhttp-h2",
+      "test": "google search",
+      "http": 200,
+      "bytes": 91929,
+      "seconds": 1.744427,
+      "complete": true
+    },
+    {
+      "node": "tx-xhttp-h2",
+      "direction": "upload",
+      "http": 200,
+      "bytes": 10000000,
+      "seconds": 11.396696,
+      "bytesPerSecond": 877447,
+      "complete": true
+    },
+    {
+      "node": "tx-grpc",
+      "test": "google search with gRPC support enabled",
+      "http": 0,
+      "bytes": 0,
+      "seconds": 20.011282,
+      "complete": false
+    },
+    {
+      "node": "tx-grpc",
+      "direction": "download with gRPC support enabled",
+      "http": 0,
+      "bytes": 0,
+      "seconds": 25.01497,
+      "complete": false
+    }
+  ],
+  "observations": [
+    "Phone logcat confirmed MATCH using manually selected tx nodes; UI selection captured separately.",
+    "Nginx gRPC requests returned 200 while actual Google/TLS requests timed out. Ingress acceptance is not end-to-end success.",
+    "Cloudflare XHTTP node was briefly selected as an independent control; this did not change EdgeOne origin or tx route.",
+    "No Nginx 413 or too-large lines were found during failed uploads.",
+    "Temporary per-host compression override and HTTP1 origin experiment did not solve the issue; original rule was restored.",
+    "Phone imported subscription restored byte-for-byte; SHA256 matched private on-device backup. Temporary 65536 setting not retained.",
+    "Windows diagnostic process has TUN and DNS interception disabled; existing Windows Clash was not changed.",
+    "Independent Windows results do not establish Android VPN acceptance. gRPC remains failing; goal must remain active.",
+    "Global EdgeOne gRPC switch verified restored OFF; tx rule origin remains dir.vpn.riko.asia.",
+    "Linux ARM64 helper TLS failures do not establish an Android app/core defect: helper lacks normal Android network integration. Helpers stopped.",
+    "Proxy-only upload succeeded once after handshake failure; full VPN retries failed. This does not establish stable connectivity or isolate a root cause.",
+    "Original automatic system traffic routing option restored ON; phone VPN stopped after tests.",
+    "Windows DNS returned tx.vpn.riko.asia as Clash Fake-IP 198.18.1.113. Earlier standalone Windows tests may have traversed existing Clash; not valid as proof of direct EdgeOne reachability.",
+    "Temporary pin of phone tx XHTTP server to live EdgeOne IP 43.174.246.63 kept SNI/Host tx.vpn.riko.asia and failed upload handshake at 5.050889 sec. Imported profile restored, SHA256 matches original.",
+    "Raw Android nc TLS experiments did not obtain a successful positive-control handshake; unsuitable to infer EdgeOne blocking. No verified network-blocking conclusion.",
+    "Native phone TLS1.2+h2 probe once received 1434 bytes at 5.77 seconds. Other SNI/ALPN probes did not respond. Does not establish TLS1.3-specific incompatibility or stable raw reachability.",
+    "Phone WS Google/upload again succeeded while XHTTP failed. Total inability to access Tencent from Wi-Fi is disproven; failed native probes cannot be generalized to all transports.",
+    "All Chrome fingerprint, tcp-concurrent, H1 diagnostic profile changes restored; SHA256 original. Phone VPN stopped, original Clash remains off.",
+    "Authenticated loopback controller used to verify actual selection and core version without screenshots. Temporary private override removed, app force-stopped and API ADB forward removed during cleanup.",
+    "Source ordinary tunnel dial timeout 5 seconds; controller 15 second URLTest could complete XHTTP Google204 request. A slower handshake/startup hypothesis is supported but not isolated as sole cause.",
+    "Server XHTTP requests verified HTTP/2 origin pull: 210 POST200 and46 GET200 in sampled eight-minute window. Tencent docs state default15sec timeout does not apply to H2 origin pull. No CDN timeout change made.",
+    "Original imported profile restored SHA256; no permanent core, server or CDN configuration change made in this turn. Goal incomplete."
+  ],
+  "edgeoneGrpcDocumentation": "https://intl.cloud.tencent.com/document/product/1145/53377",
+  "documentedGrpcModes": [
+    "Simple RPC",
+    "Server-side streaming RPC"
+  ],
+  "next": "Investigate XHTTP upload response truncation using transport-level errors; preserve five-second-vs-longer-probe evidence. Standard gRPC bidirectional stream remains outside EdgeOne documented L7 support.",
+  "nativePhoneTlsProbe": {
+    "condition": "phone VPN stopped; TLS ClientHello generated locally, pushed as binary file, Android native nc sent file on phone network; positive control present",
+    "positiveControl": {
+      "host": "www.baidu.com",
+      "responseBytes": 5223,
+      "firstRecordHex": "160303004e",
+      "seconds": 0.19
+    },
+    "edgeOne": [
+      {
+        "ip": "43.174.246.63",
+        "sni": "tx.vpn.riko.asia",
+        "responseBytes": 0,
+        "seconds": 4.2
+      },
+      {
+        "ip": "43.174.247.63",
+        "sni": "tx.vpn.riko.asia",
+        "responseBytes": 0,
+        "seconds": 4.38
+      }
+    ],
+    "phoneDns": "tx.vpn.riko.asia.eo.dnse5.com -> 43.174.246.63",
+    "serverControl": [
+      {
+        "ip": "43.174.246.63",
+        "certificateVerified": true,
+        "alpn": "h2",
+        "seconds": 0.131
+      },
+      {
+        "ip": "43.174.247.63",
+        "certificateVerified": true,
+        "alpn": "h2",
+        "seconds": 0.109
+      }
+    ],
+    "interpretation": "Evidence of failure on the current phone-to-EdgeOne path during this probe. Does not prove a permanent block or identify responsible network element."
+  },
+  "captureToolAssessment": {
+    "repository": "https://github.com/JZ-Darkal/AndroidHttpCapture",
+    "sourcePath": "C:/TRAE/VPN/upstream-references/AndroidHttpCapture",
+    "installed": false,
+    "finding": "LittleProxy HTTP MITM/WebView/system HTTP proxy workflow; setTrustAllServers(true); VpnService implementation explicitly shelved. Not suitable as primary capture of Mihomo raw outer TLS/HTTP2 sockets."
+  },
+  "blockingAudit": {
+    "condition": "Standard Xray/Mihomo gRPC tunnel requires bidirectional request/response streaming; existing EdgeOne L7 officially supports only unary and server streaming.",
+    "confirmedSources": [
+      "https://intl.cloud.tencent.com/document/product/1145/53377",
+      "https://raw.githubusercontent.com/XTLS/Xray-core/v26.3.27/transport/internet/grpc/encoding/stream.proto"
+    ],
+    "localSource": "core/src/foss/golang/clash/transport/gun/gun.go:339 request body io.Pipe; response body remains readable concurrently",
+    "repeatedCondition": "Same provider capability mismatch revalidated across at least three consecutive goal continuations; no compatible standard gRPC mode found.",
+    "impasse": "Full three-node objective cannot be satisfied on the existing L7 ingress without provider capability change or an ingress/architecture change. No approved configuration setting supplies missing bidirectional support.",
+    "remainingIncomplete": [
+      "Reliable browsing and comparable throughput for all three nodes",
+      "Tencent gRPC end-to-end pass",
+      "Stable Tencent XHTTP 10MB upload and cold connection behavior"
+    ],
+    "preservedState": {
+      "originalProfileSHA256Matches": true,
+      "temporaryOverrideRemoved": true,
+      "phoneBackgroundProcessStopped": true,
+      "phoneVPNOff": true
+    },
+    "notCompletion": true
+  }
+}

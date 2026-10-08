@@ -52,8 +52,15 @@ func Init(home, versionName, gitVersion string, platformVersion int) {
 			return errBlocked
 		}
 
-		return conn.Control(func(fd uintptr) {
-			app.MarkSocket(int(fd))
+		var protectErr error
+		err := conn.Control(func(fd uintptr) {
+			if !app.MarkSocket(int(fd)) {
+				protectErr = errors.New("VPN socket protection denied")
+			}
 		})
+		if err != nil {
+			return err
+		}
+		return protectErr
 	}
 }

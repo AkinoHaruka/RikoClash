@@ -1,6 +1,8 @@
 import java.net.URL
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import java.security.MessageDigest
+import java.util.Properties
 
 plugins {
     kotlin("android")
@@ -33,40 +35,61 @@ tasks.getByName("clean", type = Delete::class) {
 }
 
 val geoFilesDownloadDir = "src/main/assets"
+val geoLockFile = rootProject.file("gradle/geodata.lock.properties")
 
 task("downloadGeoFiles") {
 
-    val geoFilesUrls = mapOf(
-        "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb" to "geoip.metadb",
-        "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat" to "geosite.dat",
-        // "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/country.mmdb" to "country.mmdb",
-        "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb" to "ASN.mmdb",
-        "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z" to "BundleMRS.7z",
-    )
+    inputs.file(geoLockFile)
+
+    fun verify(file: File, size: Long, sha256: String) {
+        check(file.length() == size) { "Locked asset size mismatch: ${file.name}" }
+        val digest = MessageDigest.getInstance("SHA-256")
+        file.inputStream().use { input ->
+            val buffer = ByteArray(65536)
+            while (true) {
+                val count = input.read(buffer)
+                if (count < 0) break
+                digest.update(buffer, 0, count)
+            }
+        }
+        val actual = digest.digest().joinToString("") { "%02x".format(it) }
+        check(actual == sha256) { "Locked asset SHA-256 mismatch: ${file.name}" }
+    }
 
     doLast {
-        geoFilesUrls.forEach { (downloadUrl, outputFileName) ->
-            val url = URL(downloadUrl)
+        val lock = Properties().apply { geoLockFile.inputStream().use(::load) }
+        lock.getProperty("files").split(",").forEach { outputFileName ->
+            val downloadUrl = lock.getProperty("$outputFileName.url")
+            val expectedSize = lock.getProperty("$outputFileName.size").toLong()
+            val expectedHash = lock.getProperty("$outputFileName.sha256")
             val outputPath = file("$geoFilesDownloadDir/$outputFileName")
-            outputPath.parentFile.mkdirs()
-            url.openStream().use { input ->
-                Files.copy(input, outputPath.toPath(), StandardCopyOption.REPLACE_EXISTING)
-                println("$outputFileName downloaded to $outputPath")
+            if (outputPath.exists()) {
+                verify(outputPath, expectedSize, expectedHash)
+            } else {
+                check(!gradle.startParameter.isOffline) {
+                    "Locked asset missing in offline mode: $outputFileName"
+                }
+                outputPath.parentFile.mkdirs()
+                val temporary = File.createTempFile("$outputFileName-", ".part", outputPath.parentFile)
+                try {
+                    val connection = URL(downloadUrl).openConnection().apply {
+                        connectTimeout = 30000
+                        readTimeout = 60000
+                    }
+                    connection.getInputStream().use { input ->
+                        Files.copy(input, temporary.toPath(), StandardCopyOption.REPLACE_EXISTING)
+                    }
+                    verify(temporary, expectedSize, expectedHash)
+                    Files.move(temporary.toPath(), outputPath.toPath(), StandardCopyOption.REPLACE_EXISTING)
+                } finally {
+                    temporary.delete()
+                }
             }
+            println("Verified locked asset: $outputFileName")
         }
     }
 }
 
 afterEvaluate {
-    val downloadGeoFilesTask = tasks["downloadGeoFiles"]
-
-    tasks.forEach {
-        if (it.name.startsWith("assemble")) {
-            it.dependsOn(downloadGeoFilesTask)
-        }
-    }
-}
-
-tasks.getByName("clean", type = Delete::class) {
-    delete(file(geoFilesDownloadDir))
+    tasks.named("preBuild") { dependsOn("downloadGeoFiles") }
 }

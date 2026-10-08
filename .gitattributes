@@ -2,3 +2,4 @@
 
 *.bat text eol=crlf
 *.jar binary
+*.patch whitespace=-space-before-tab

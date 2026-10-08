@@ -1,43 +1,31 @@
 cmake_minimum_required(VERSION 3.0)
 
-# 获取git hash
-
-message(STATUS "CMAKE_CURRENT_SOURCE_DIR= ${CMAKE_CURRENT_SOURCE_DIR}")
+# A pinned detached submodule need not have any remote branch pointing to it.
+set(MIHOMO_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/../../foss/golang/clash")
 execute_process(
-  COMMAND git submodule foreach git log -1 --format=%H   
-  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} 
+  COMMAND git rev-parse --short=7 HEAD
+  WORKING_DIRECTORY "${MIHOMO_SOURCE}"
   OUTPUT_VARIABLE COMMIT_HASH
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  RESULT_VARIABLE GIT_RESULT
 )
-string(REPLACE "\n" ";" COMMIT_HASH "${COMMIT_HASH}")
-list(GET COMMIT_HASH 1 COMMIT_HASH)
-string (REGEX REPLACE "[\n\t\r]" "" COMMIT_HASH ${COMMIT_HASH})
-string(SUBSTRING ${COMMIT_HASH} 0 7 COMMIT_HASH)
-message(STATUS "git hash= ${COMMIT_HASH}")
-
-# 获取分支名称
+if (NOT GIT_RESULT EQUAL 0 OR NOT COMMIT_HASH MATCHES "^[0-9a-f]+$")
+  message(FATAL_ERROR "Cannot determine pinned Mihomo revision")
+endif ()
 execute_process(
-  COMMAND git submodule foreach git branch -r --contains ${COMMIT_HASH}
-  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} 
-  OUTPUT_VARIABLE CURRENT_BRANCH
+  COMMAND git show -s --format=%cs HEAD
+  WORKING_DIRECTORY "${MIHOMO_SOURCE}"
+  OUTPUT_VARIABLE SOURCE_DATE
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  RESULT_VARIABLE DATE_RESULT
 )
-string(REPLACE "\n" ";" CURRENT_BRANCH "${CURRENT_BRANCH}")
-list(GET CURRENT_BRANCH 1 CURRENT_BRANCH)
-string (REGEX REPLACE "origin/" "" CURRENT_BRANCH ${CURRENT_BRANCH})
-string (REGEX REPLACE "[\n\t\r]" "" CURRENT_BRANCH ${CURRENT_BRANCH})
-#string(SUBSTRING ${CURRENT_BRANCH} 0 8 CURRENT_BRANCH)
-message(STATUS "git current branch = ${CURRENT_BRANCH}")
-
-# 获取生成时间
-string(TIMESTAMP COMPILE_TIME "%y%m%d")
-string (REGEX REPLACE "[\n\t\r]" "" COMPILE_TIME ${COMPILE_TIME})
-string(REGEX REPLACE "\"" "" COMPILE_TIME ${COMPILE_TIME})
-
-# 生成版本信息
-set(GIT_VERSION "${CURRENT_BRANCH}_${COMMIT_HASH}_${COMPILE_TIME}")
-message(STATUS "version info = ${GIT_VERSION}")
-
-# 去除空格
-string(REGEX REPLACE "[ ]+" "" GIT_VERSION "${GIT_VERSION}")
+if (NOT DATE_RESULT EQUAL 0 OR NOT SOURCE_DATE MATCHES "^[0-9]+-[0-9]+-[0-9]+$")
+  message(FATAL_ERROR "Cannot determine pinned Mihomo source date")
+endif ()
+string(REPLACE "-" "" SOURCE_DATE "${SOURCE_DATE}")
+string(SUBSTRING "${SOURCE_DATE}" 2 6 COMPILE_TIME)
+set(GIT_VERSION "riko_${COMMIT_HASH}_${COMPILE_TIME}")
+message(STATUS "Riko core source version = ${GIT_VERSION}")
 
 # 保存变量到文件
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/version.h.in ${CMAKE_CURRENT_SOURCE_DIR}/version.h @ONLY)

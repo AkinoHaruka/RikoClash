@@ -1,3 +1,15 @@
+# RikoClash
+
+基于 ClashMetaForAndroid 的 Riko Android 客户端改造工程。独立 Debug APK 已构建、安装；gRPC 主线路及内置 WARP → 自建服务器的手动备用均已通过手机 TUN 访问 Google。WARP 使用已有私有身份，每设备自动注册、订阅联动与自动切换仍待开发。
+
+开发起点、固定版本和主线路 / WARP 备用线路规划见 [Riko 开发说明](docs/RIKO-DEVELOPMENT.md)，工作规则见 [AGENTS.md](AGENTS.md)。下方保留上游 README。
+
+开发顺序、具体任务和验收门槛见 [RikoClash 开发任务](plans/RIKO-CLASH-PLAN.md)：先完成独立 APK 与主线路性能基线，再接入 WARP 手动备用和自动切换。
+
+本工程构建请使用 [构建说明](docs/BUILD.md)，当前验证范围见 [主线路记录](docs/evidence/mainline-20261005.md)。下方历史上游构建命令不代表本工程的工具链要求。
+
+WARP 当前能力和限制见 [手动备用验证](docs/evidence/warp-manual-20261005.md)。
+
 ## Clash Meta for Android
 
 A Graphical user interface of [Clash.Meta](https://github.com/MetaCubeX/Clash.Meta) for Android

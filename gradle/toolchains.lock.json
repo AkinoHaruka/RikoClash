@@ -1,0 +1,36 @@
+{
+  "jdk": {
+    "version": "21.0.12.1",
+    "directory": "jdk-21.0.12.1+1",
+    "archive": "jdk21.zip",
+    "url": "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jdk_x64_windows_hotspot_21.0.12.1_1.zip",
+    "sha256": "f9d6e191ab098c0d416e7d588a24420a8621cd2f4720dab2459b8b7b2d2d8b4e"
+  },
+  "go": {
+    "version": "1.26.3",
+    "directory": "go",
+    "archive": "go1.26.3.windows-amd64.zip",
+    "url": "https://go.dev/dl/go1.26.3.windows-amd64.zip",
+    "sha256": "20d2ceafb4ed41b96b879010927b28bc92a5be57a7c1801ce365a9ca51d3224a",
+    "patches": [
+      {
+        "file": ".github/patch/disable_pidfd_on_android.patch",
+        "sha256": "8caa6404bfbc405771b4e3e82872cbf55158693c3cd2b9893075d2ce722d29ed",
+        "target": "src/os/pidfd_linux.go",
+        "patchedSha256": "f2a7c0e31bda943d4e2151a61f6a9eb2084815ed5c887cc8aa4fd7506805de33"
+      },
+      {
+        "file": ".github/patch/remove_64bits_syscall_on_32bit_linux.patch",
+        "sha256": "bbbe218a58eca0858603a790ae6798ae8b3723b02a21996beac104814d864948",
+        "target": "src/runtime/os_linux32.go",
+        "patchedSha256": "41bba0c3009cfea192dd785ccf0442bfdf39f021b763ff835e9c5d869ce6ab18"
+      }
+    ]
+  },
+  "android": {
+    "sdk": 35,
+    "ndk": "29.0.14206865",
+    "cmake": "3.22.1"
+  },
+  "mihomoCommit": "88dcbf7f1614a67c3b36b848ee3592dfa92ada36"
+}

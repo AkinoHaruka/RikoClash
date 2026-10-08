@@ -1,0 +1,83 @@
+{
+  "host": "tx.vpn.riko.asia",
+  "dns": {
+    "previous_cname": "tx.vpn.riko.asia.eo.dnse1.com",
+    "previous_proxy": false,
+    "new_cname": "tx.vpn.riko.asia.eo.dnse5.com",
+    "proxy": false
+  },
+  "edgeone": {
+    "settings_checked_at_utc": "2026-10-04T20:11:19Z",
+    "zone_id": "zone-3vs379k7duh3",
+    "acceleration_region": "global excluding mainland China",
+    "origin": "dir.vpn.riko.asia",
+    "origin_protocol": "HTTPS",
+    "origin_host": "dir.vpn.riko.asia",
+    "domain_status_at_check": "active",
+    "domain_status_checked_at_utc": "2026-10-04T19:43:54Z",
+    "https_config_status_at_check": "deployed",
+    "http2_access_global_enabled": true,
+    "grpc_global_enabled": false,
+    "grpc_status_note": "Disabled. The global switch was briefly enabled during evaluation, then restored off after checking protocol compatibility. Tencent documents EdgeOne gRPC support only for Simple RPC and server-side streaming; Xray VLESS gRPC Tun uses bidirectional streaming, so compatibility is not established.",
+    "rule": {
+      "name": "Riko tx WS + HTTP2 origin",
+      "enabled": true,
+      "match": "HOST equals tx.vpn.riko.asia",
+      "http2_origin_enabled": true,
+      "websocket_enabled": true,
+      "websocket_idle_timeout_seconds": 300
+    }
+  },
+  "subscription_catalog": {
+    "source": "subscription-manager-rs/src/subscriptions.rs node_catalog_for_profile",
+    "tx_transport_variants": ["ws", "grpc", "xhttp-h2"],
+    "tx_xhttp_h3_generated": false,
+    "live_manager_checked_at_utc": "2026-10-04T20:30:47Z",
+    "live_phone_subscription_selected_tx_nodes": ["tx-ws", "tx-grpc", "tx-xhttp-h2"],
+    "live_phone_subscription_selected_node_count": 15,
+    "secret_subscription_url_or_uuid_recorded": false,
+    "device_snapshot": {
+      "name": "手机-tx-ws",
+      "protocol": "vless",
+      "transport": "ws",
+      "host": "tx.vpn.riko.asia",
+      "scope": "local YAML snapshot containing WS nodes only; live manager allocation was checked separately"
+    }
+  },
+  "origin_transport_config": {
+    "checked_at_utc": "2026-10-04T20:30:47Z",
+    "xray_config_path": "/opt/riko-vpn-restore-20261004/xray/config.json",
+    "nginx_config_path": "/opt/riko-vpn-restore-20261004/nginx/conf.d/dir-vpn-http.conf",
+    "vless_inbounds": [
+      {"network": "ws", "port": 10080, "path": "/vless-ws"},
+      {"network": "grpc", "port": 10081, "service_name": "vless-grpc"},
+      {"network": "xhttp", "port": 10082, "path": "/vless-xhttp"},
+      {"network": "xhttp", "port": 10083, "path": "/vless-aws-xhttp"}
+    ],
+    "nginx_xhttp_route": "/vless-xhttp -> xray:10082",
+    "nginx_route_host": "dir.vpn.riko.asia"
+  },
+  "verification": {
+    "settings_checked_at_utc": "2026-10-04T20:11:19Z",
+    "checked_at_utc": "2026-10-04T19:41:34Z",
+    "websocket_checked_at_utc": "2026-10-04T19:49:18Z",
+    "tls_verify_result": 0,
+    "root_request_http_status": 404,
+    "root_request_edge_cache_status": "MISS",
+    "websocket_path": "/vless-ws",
+    "websocket_upgrade_status": "101 Switching Protocols",
+    "websocket_edge_cache_status": "MISS",
+    "client_dns_answer_seen": "198.18.0.70",
+    "client_path_note": "Tested through the current Windows network path; Clash was not stopped or changed.",
+    "http2_protocol_negotiation_tested": false,
+    "bare_xhttp_get_status": {"tx_host": 404, "direct_host": 404},
+    "bare_xhttp_get_note": "Unauthenticated GET without XHTTP transport framing; 404 is inconclusive and is not counted as protocol validation.",
+    "phone_client_tested": false,
+    "phone_client_test_note": "Both previously known wireless-debugging endpoints were offline during this check.",
+    "rikoclash_vless_authentication_tested": false,
+    "xhttp_vless_authentication_tested": false,
+    "grpc_vless_authentication_tested": false,
+    "grpc_edgeone_compatibility_tested": false,
+    "note": "TLS and the WebSocket upgrade reached the EdgeOne-backed origin. Xray has WS, gRPC, and XHTTP inbounds; Nginx routes /vless-xhttp to xray:10082, and the live phone subscription allocation includes tx-ws, tx-grpc, and tx-xhttp-h2. The authenticated XHTTP path has not been tested from RikoClash. A plain unauthenticated GET returned 404 and is inconclusive. EdgeOne's documented gRPC modes do not include the bidirectional mode used by Xray Tun."
+  }
+}

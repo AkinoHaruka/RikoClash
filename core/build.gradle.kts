@@ -43,12 +43,14 @@ android {
 
     externalNativeBuild {
         cmake {
+            version = "3.22.1"
             path = file("src/main/cpp/CMakeLists.txt")
         }
     }
 }
 
 dependencies {
+    testImplementation("junit:junit:4.13.2")
     implementation(project(":common"))
 
     implementation(libs.androidx.core)

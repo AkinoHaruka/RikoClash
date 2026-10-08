@@ -1,0 +1,15 @@
+{
+  "FormatVersion": "1.0",
+  "Rules": [{
+    "RuleName": "Riko tx WS + HTTP2 origin",
+    "Branches": [{
+      "Condition": "${http.request.host} in ['tx.vpn.riko.asia']",
+      "Actions": [
+        {"Name": "WebSocket", "WebSocketParameters": {"Switch": "on", "Timeout": 300}},
+        {"Name": "UpstreamHTTP2", "UpstreamHTTP2Parameters": {"Switch": "on"}},
+        {"Name": "HTTP2", "HTTP2Parameters": {"Switch": "on"}}
+      ]
+    }],
+    "Description": []
+  }]
+}

@@ -1,4 +1,4 @@
-rootProject.name = "ClashMetaForAndroid"
+rootProject.name = "RikoClash"
 
 include(":app")
 include(":core")

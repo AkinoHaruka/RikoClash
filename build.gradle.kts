@@ -47,7 +47,7 @@ subprojects {
         defaultConfig {
             if (isApp) {
                 val customApplicationId = queryConfigProperty("custom.application.id") as? String?
-                applicationId = customApplicationId.takeIf { it?.isNotBlank() == true } ?: "com.github.metacubex.clash"
+                applicationId = customApplicationId.takeIf { it?.isNotBlank() == true } ?: "asia.riko.clash"
             }
 
             project.name.let { name ->
@@ -77,7 +77,7 @@ subprojects {
             if (!isApp) {
                 consumerProguardFiles("consumer-rules.pro")
             } else {
-                setProperty("archivesBaseName", "cmfa-$versionName")
+                setProperty("archivesBaseName", "riko-clash-$versionName")
             }
         }
 
@@ -151,7 +151,8 @@ subprojects {
                         keystore.inputStream().use(this::load)
                     }
 
-                    storeFile = rootProject.file("release.keystore")
+                    storeFile = rootProject.file(prop.getProperty("keystore.file")
+                        ?: error("Riko signing.properties must specify keystore.file"))
                     storePassword = prop.getProperty("keystore.password")!!
                     keyAlias = prop.getProperty("key.alias")!!
                     keyPassword = prop.getProperty("key.password")!!
@@ -163,7 +164,7 @@ subprojects {
             named("release") {
                 isMinifyEnabled = isApp
                 isShrinkResources = isApp
-                signingConfig = signingConfigs.findByName("release") ?: signingConfigs["debug"]
+                signingConfig = signingConfigs.findByName("release")
                 proguardFiles(
                     getDefaultProguardFile("proguard-android-optimize.txt"),
                     "proguard-rules.pro"
@@ -171,6 +172,7 @@ subprojects {
             }
             named("debug") {
                 versionNameSuffix = ".debug"
+                if (isApp) applicationIdSuffix = ".debug"
             }
         }
 
@@ -202,6 +204,17 @@ subprojects {
 
 task("clean", type = Delete::class) {
     delete(rootProject.buildDir)
+}
+
+// A release task must never silently produce a debug-signed or unsigned candidate.
+gradle.taskGraph.whenReady {
+    if (allTasks.any { it.project.name == "app" &&
+            (it.name.startsWith("assemble") || it.name.startsWith("bundle") || it.name.startsWith("package")) &&
+            it.name.contains("Release") }) {
+        check(rootProject.file("signing.properties").exists()) {
+            "Riko release signing is not configured; use AlphaDebug for development."
+        }
+    }
 }
 
 tasks.wrapper {
