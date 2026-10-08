@@ -238,11 +238,15 @@ class MainActivity : BaseActivity<MainDesign>() {
             val supportedAbis = Build.SUPPORTED_ABIS ?: arrayOf("arm64-v8a")
             var matchedDownloadUrl = ""
 
+            // 1. Prefer release APK for matching device ABI
             for (abi in supportedAbis) {
                 for (i in 0 until assets.length()) {
                     val asset = assets.getJSONObject(i)
                     val name = asset.optString("name", "")
-                    if (name.endsWith(".apk", ignoreCase = true) && name.contains("-$abi-", ignoreCase = true)) {
+                    if (name.endsWith(".apk", ignoreCase = true) &&
+                        name.contains("-$abi-", ignoreCase = true) &&
+                        !name.contains("-debug", ignoreCase = true)
+                    ) {
                         matchedDownloadUrl = asset.optString("browser_download_url", "")
                         break
                     }
@@ -250,6 +254,37 @@ class MainActivity : BaseActivity<MainDesign>() {
                 if (matchedDownloadUrl.isNotEmpty()) break
             }
 
+            // 2. Fallback to debug APK for matching device ABI
+            if (matchedDownloadUrl.isEmpty()) {
+                for (abi in supportedAbis) {
+                    for (i in 0 until assets.length()) {
+                        val asset = assets.getJSONObject(i)
+                        val name = asset.optString("name", "")
+                        if (name.endsWith(".apk", ignoreCase = true) && name.contains("-$abi-", ignoreCase = true)) {
+                            matchedDownloadUrl = asset.optString("browser_download_url", "")
+                            break
+                        }
+                    }
+                    if (matchedDownloadUrl.isNotEmpty()) break
+                }
+            }
+
+            // 3. Fallback to universal release APK
+            if (matchedDownloadUrl.isEmpty()) {
+                for (i in 0 until assets.length()) {
+                    val asset = assets.getJSONObject(i)
+                    val name = asset.optString("name", "")
+                    if (name.endsWith(".apk", ignoreCase = true) &&
+                        name.contains("-universal-", ignoreCase = true) &&
+                        !name.contains("-debug", ignoreCase = true)
+                    ) {
+                        matchedDownloadUrl = asset.optString("browser_download_url", "")
+                        break
+                    }
+                }
+            }
+
+            // 4. Fallback to universal debug APK
             if (matchedDownloadUrl.isEmpty()) {
                 for (i in 0 until assets.length()) {
                     val asset = assets.getJSONObject(i)
@@ -261,6 +296,7 @@ class MainActivity : BaseActivity<MainDesign>() {
                 }
             }
 
+            // 5. Fallback to any APK
             if (matchedDownloadUrl.isEmpty()) {
                 for (i in 0 until assets.length()) {
                     val asset = assets.getJSONObject(i)

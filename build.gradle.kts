@@ -145,6 +145,7 @@ subprojects {
 
         signingConfigs {
             val keystore = rootProject.file("signing.properties")
+            val defaultKeystore = rootProject.file("riko.keystore")
             if (keystore.exists()) {
                 create("release") {
                     val prop = Properties().apply {
@@ -152,10 +153,17 @@ subprojects {
                     }
 
                     storeFile = rootProject.file(prop.getProperty("keystore.file")
-                        ?: error("Riko signing.properties must specify keystore.file"))
-                    storePassword = prop.getProperty("keystore.password")!!
-                    keyAlias = prop.getProperty("key.alias")!!
-                    keyPassword = prop.getProperty("key.password")!!
+                        ?: "riko.keystore")
+                    storePassword = prop.getProperty("keystore.password") ?: "rikoclash"
+                    keyAlias = prop.getProperty("key.alias") ?: "riko"
+                    keyPassword = prop.getProperty("key.password") ?: "rikoclash"
+                }
+            } else if (defaultKeystore.exists()) {
+                create("release") {
+                    storeFile = defaultKeystore
+                    storePassword = "rikoclash"
+                    keyAlias = "riko"
+                    keyPassword = "rikoclash"
                 }
             }
         }
@@ -211,7 +219,7 @@ gradle.taskGraph.whenReady {
     if (allTasks.any { it.project.name == "app" &&
             (it.name.startsWith("assemble") || it.name.startsWith("bundle") || it.name.startsWith("package")) &&
             it.name.contains("Release") }) {
-        check(rootProject.file("signing.properties").exists()) {
+        check(rootProject.file("signing.properties").exists() || rootProject.file("riko.keystore").exists()) {
             "Riko release signing is not configured; use AlphaDebug for development."
         }
     }

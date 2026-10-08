@@ -35,6 +35,7 @@ app/src/main/assets
 # KeyStore
 signing.properties
 *.keystore
+!riko.keystore
 *.jks
 
 # clion cmake build

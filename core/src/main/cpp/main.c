@@ -427,11 +427,18 @@ static int call_tun_interface_query_socket_uid_impl(void *tun_interface, int pro
 
     ATTACH_JNI();
 
-    return (*env)->CallIntMethod(env, (jobject) tun_interface,
-                                 (jmethodID) m_tun_interface_query_socket_uid,
-                                 (jint) protocol,
-                                 (jstring) new_string(source),
-                                 (jstring) new_string(target));
+    jstring j_source = new_string(source);
+    jstring j_target = new_string(target);
+    int result = (*env)->CallIntMethod(env, (jobject) tun_interface,
+                                       (jmethodID) m_tun_interface_query_socket_uid,
+                                       (jint) protocol,
+                                       j_source,
+                                       j_target);
+    if ((*env)->ExceptionCheck(env)) {
+        (*env)->ExceptionClear(env);
+        return -1;
+    }
+    return result;
 }
 
 static void call_completable_complete_impl(void *completable, const char *exception) {

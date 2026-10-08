@@ -75,11 +75,13 @@ object Clash {
     ) {
         Bridge.nativeStartTun(fd, stack, gateway, portal, dns,
             com.github.kr328.clash.core.bridge.SocketTunInterface(markSocket) { protocol, source, target ->
-                querySocketUid(
-                    protocol,
-                    parseInetSocketAddress(source),
-                    parseInetSocketAddress(target)
-                )
+                runCatching {
+                    querySocketUid(
+                        protocol,
+                        parseInetSocketAddress(source),
+                        parseInetSocketAddress(target)
+                    )
+                }.getOrDefault(-1)
             })
     }
 

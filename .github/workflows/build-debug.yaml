@@ -71,7 +71,7 @@ jobs:
 
       - name: Build
         if: success()
-        run: ./gradlew --no-daemon app:assembleAlphaDebug
+        run: ./gradlew --no-daemon app:assembleAlphaDebug app:assembleAlphaRelease
           
       - name: Upload Aritfact (universal)
         uses: actions/upload-artifact@v7
@@ -113,6 +113,14 @@ jobs:
           path: |
             app/build/outputs/apk/alpha/debug/*-x86-*.apk
 
+      - name: Upload Artifact (Release APKs)
+        uses: actions/upload-artifact@v7
+        if: ${{  success() }}
+        with:
+          name: RikoClash Release APKs
+          path: |
+            app/build/outputs/apk/alpha/release/*.apk
+
       - name: Publish to GitHub Releases
         uses: softprops/action-gh-release@v2
         if: ${{ success() && github.ref == 'refs/heads/main' }}
@@ -120,12 +128,15 @@ jobs:
           tag_name: Prerelease-alpha
           name: "RikoClash Pre-release (Auto Build)"
           prerelease: true
-          files: app/build/outputs/apk/alpha/debug/*.apk
+          files: |
+            app/build/outputs/apk/alpha/release/*.apk
+            app/build/outputs/apk/alpha/debug/*.apk
           body: |
             ## RikoClash 自动构建发布
             
             - GitHub Actions 自动编译构建产物
-            - 普通安卓手机请下载 `riko-clash-*-arm64-v8a-debug.apk` 或 `universal`
+            - 普通安卓手机推荐下载 **Release 版本**：`riko-clash-*-arm64-v8a-release.apk` 或 `universal-release`
+            - 开发者/测试调试可选用 `debug.apk`
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
