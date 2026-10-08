@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"cfa/native/app"
@@ -457,57 +458,148 @@ func FetchAndValid(
 		return err
 	}
 
+	type providerTask struct {
+		name     string
+		provider map[string]any
+		prefix   string
+	}
+
+	var tasks []providerTask
 	forEachProviders(rawCfg, func(index int, total int, name string, provider map[string]any, prefix string) {
-		bytes, _ := json.Marshal(&Status{
-			Action:      "FetchProviders",
-			Args:        []string{name},
-			Progress:    index,
-			MaxProgress: total,
+		tasks = append(tasks, providerTask{
+			name:     name,
+			provider: provider,
+			prefix:   prefix,
 		})
+	})
 
-		reportStatus(string(bytes))
+	total := len(tasks)
+	if total > 0 {
+		var (
+			completedCount int32
+			statusMu       sync.Mutex
+			wg             sync.WaitGroup
+			sem            = make(chan struct{}, 4)
+		)
 
-		u, uok := provider["url"]
-		p, pok := provider["path"]
+		for _, task := range tasks {
+			t := task
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				sem <- struct{}{}
+				defer func() { <-sem }()
 
-		if !uok || !pok {
-			return
-		}
+				u, uok := t.provider["url"]
+				p, pok := t.provider["path"]
+				if !uok || !pok {
+					c := int(atomic.AddInt32(&completedCount, 1))
+					statusMu.Lock()
+					b, _ := json.Marshal(&Status{
+						Action:      "FetchProviders",
+						Args:        []string{t.name},
+						Progress:    c,
+						MaxProgress: total,
+					})
+					reportStatus(string(b))
+					statusMu.Unlock()
+					return
+				}
 
-		us, uok := u.(string)
-		ps, pok := p.(string)
+				us, uok := u.(string)
+				ps, pok := p.(string)
+				if !uok || !pok {
+					c := int(atomic.AddInt32(&completedCount, 1))
+					statusMu.Lock()
+					b, _ := json.Marshal(&Status{
+						Action:      "FetchProviders",
+						Args:        []string{t.name},
+						Progress:    c,
+						MaxProgress: total,
+					})
+					reportStatus(string(b))
+					statusMu.Unlock()
+					return
+				}
 
-		if !uok || !pok {
-			return
-		}
+				if _, err := os.Stat(ps); err == nil {
+					c := int(atomic.AddInt32(&completedCount, 1))
+					statusMu.Lock()
+					b, _ := json.Marshal(&Status{
+						Action:      "FetchProviders",
+						Args:        []string{t.name},
+						Progress:    c,
+						MaxProgress: total,
+					})
+					reportStatus(string(b))
+					statusMu.Unlock()
+					return
+				}
 
-		if _, err := os.Stat(ps); err == nil {
-			return
-		}
+				url, err := U.Parse(us)
+				if err != nil {
+					c := int(atomic.AddInt32(&completedCount, 1))
+					statusMu.Lock()
+					b, _ := json.Marshal(&Status{
+						Action:      "FetchProviders",
+						Args:        []string{t.name},
+						Progress:    c,
+						MaxProgress: total,
+					})
+					reportStatus(string(b))
+					statusMu.Unlock()
+					return
+				}
 
-		url, err := U.Parse(us)
-		if err != nil {
-			return
-		}
-
-		if prefix == RULES {
-			if pib, uok := provider["path-in-bundle"]; uok {
-				if pib, uok := pib.(string); uok && pib != "" {
-					// actually, we don't need to extract the file here; the core will do it.
-					// however, due to historical reasons, CMFA fetches provider content when loading profile,
-					// so we maintain consistency with the old behavior.
-					if file, err := RB.Open(pib); err == nil {
-						defer file.Close()
-						if err := writeFile(ps, file); err == nil {
-							return
+				if t.prefix == RULES {
+					if pib, uok := t.provider["path-in-bundle"]; uok {
+						if pib, uok := pib.(string); uok && pib != "" {
+							if file, err := RB.Open(pib); err == nil {
+								defer file.Close()
+								if err := writeFile(ps, file); err == nil {
+									c := int(atomic.AddInt32(&completedCount, 1))
+									statusMu.Lock()
+									b, _ := json.Marshal(&Status{
+										Action:      "FetchProviders",
+										Args:        []string{t.name},
+										Progress:    c,
+										MaxProgress: total,
+									})
+									reportStatus(string(b))
+									statusMu.Unlock()
+									return
+								}
+							}
 						}
 					}
 				}
-			}
-		}
 
-		_, _ = fetch(url, ps)
-	})
+				statusMu.Lock()
+				b, _ := json.Marshal(&Status{
+					Action:      "FetchProviders",
+					Args:        []string{t.name},
+					Progress:    int(atomic.LoadInt32(&completedCount)),
+					MaxProgress: total,
+				})
+				reportStatus(string(b))
+				statusMu.Unlock()
+
+				_, _ = fetch(url, ps)
+
+				c := int(atomic.AddInt32(&completedCount, 1))
+				statusMu.Lock()
+				b, _ = json.Marshal(&Status{
+					Action:      "FetchProviders",
+					Args:        []string{t.name},
+					Progress:    c,
+					MaxProgress: total,
+				})
+				reportStatus(string(b))
+				statusMu.Unlock()
+			}()
+		}
+		wg.Wait()
+	}
 
 	bytes, _ := json.Marshal(&Status{
 		Action:      "Verifying",
