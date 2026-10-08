@@ -73,15 +73,7 @@ jobs:
         if: success()
         run: ./gradlew --no-daemon app:assembleAlphaDebug app:assembleAlphaRelease
           
-      - name: Upload Aritfact (universal)
-        uses: actions/upload-artifact@v7
-        if: ${{  success() }}
-        with:
-          name: RikoClash Debug APK (universal) 
-          path: |
-            app/build/outputs/apk/alpha/debug/*-universal-*.apk
-      
-      - name: Upload Aritfact (arm64-v8a)
+      - name: Upload Artifact (arm64-v8a debug)
         uses: actions/upload-artifact@v7
         if: ${{  success() }}
         with:
@@ -89,29 +81,13 @@ jobs:
           path: |
             app/build/outputs/apk/alpha/debug/*-arm64-v8a-*.apk
       
-      - name: Upload Aritfact (armeabi-v7a)
-        uses: actions/upload-artifact@v7
-        if: ${{  success() }}
-        with:
-          name: RikoClash Debug APK (armeabi-v7a)
-          path: |
-            app/build/outputs/apk/alpha/debug/*-armeabi-v7a-*.apk
-      
-      - name: Upload Aritfact (x86_64)
+      - name: Upload Artifact (x86_64 debug)
         uses: actions/upload-artifact@v7
         if: ${{  success() }}
         with:
           name: RikoClash Debug APK (x86_64)
           path: |
             app/build/outputs/apk/alpha/debug/*-x86_64-*.apk
-      
-      - name: Upload Aritfact (x86)
-        uses: actions/upload-artifact@v7
-        if: ${{  success() }}
-        with:
-          name: RikoClash Debug APK (x86)
-          path: |
-            app/build/outputs/apk/alpha/debug/*-x86-*.apk
 
       - name: Upload Artifact (Release APKs)
         uses: actions/upload-artifact@v7
@@ -134,9 +110,12 @@ jobs:
           body: |
             ## RikoClash 自动构建发布
             
-            - GitHub Actions 自动编译构建产物
-            - 普通安卓手机推荐下载 **Release 版本**：`riko-clash-*-arm64-v8a-release.apk` 或 `universal-release`
-            - 开发者/测试调试可选用 `debug.apk`
+            - 📱 手机端（64位 ARM / Redmi Turbo 3）：
+              - **Release 版本（推荐）**：`riko-clash-*-arm64-v8a-release.apk`
+              - **Debug 版本**：`riko-clash-*-arm64-v8a-debug.apk`
+            - 💻 电脑模拟器（x86_64）：
+              - **Release 版本**：`riko-clash-*-x86_64-release.apk`
+              - **Debug 版本**：`riko-clash-*-x86_64-debug.apk`
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

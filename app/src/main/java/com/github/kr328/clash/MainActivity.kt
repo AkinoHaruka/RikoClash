@@ -234,19 +234,21 @@ class MainActivity : BaseActivity<MainDesign>() {
             val assets = latestRelease.optJSONArray("assets") ?: JSONArray()
 
             val currentVersionName = packageManager.getPackageInfo(packageName, 0).versionName ?: "0.0.0"
+            val isCurrentDebug = packageName.endsWith(".debug") || currentVersionName.contains("debug", ignoreCase = true)
 
             val supportedAbis = Build.SUPPORTED_ABIS ?: arrayOf("arm64-v8a")
             var matchedDownloadUrl = ""
 
-            // 1. Prefer release APK for matching device ABI
+            // 1. Prefer matching device ABI + exact build type (debug -> debug, release -> release)
             for (abi in supportedAbis) {
                 for (i in 0 until assets.length()) {
                     val asset = assets.getJSONObject(i)
                     val name = asset.optString("name", "")
-                    if (name.endsWith(".apk", ignoreCase = true) &&
-                        name.contains("-$abi-", ignoreCase = true) &&
-                        !name.contains("-debug", ignoreCase = true)
-                    ) {
+                    if (!name.endsWith(".apk", ignoreCase = true) || !name.contains("-$abi-", ignoreCase = true)) {
+                        continue
+                    }
+                    val isAssetDebug = name.contains("-debug", ignoreCase = true)
+                    if (isCurrentDebug == isAssetDebug) {
                         matchedDownloadUrl = asset.optString("browser_download_url", "")
                         break
                     }
@@ -254,7 +256,7 @@ class MainActivity : BaseActivity<MainDesign>() {
                 if (matchedDownloadUrl.isNotEmpty()) break
             }
 
-            // 2. Fallback to debug APK for matching device ABI
+            // 2. Fallback to alternative build type for matching device ABI
             if (matchedDownloadUrl.isEmpty()) {
                 for (abi in supportedAbis) {
                     for (i in 0 until assets.length()) {
@@ -269,34 +271,22 @@ class MainActivity : BaseActivity<MainDesign>() {
                 }
             }
 
-            // 3. Fallback to universal release APK
+            // 3. Fallback to any APK matching current build type
             if (matchedDownloadUrl.isEmpty()) {
                 for (i in 0 until assets.length()) {
                     val asset = assets.getJSONObject(i)
                     val name = asset.optString("name", "")
-                    if (name.endsWith(".apk", ignoreCase = true) &&
-                        name.contains("-universal-", ignoreCase = true) &&
-                        !name.contains("-debug", ignoreCase = true)
-                    ) {
-                        matchedDownloadUrl = asset.optString("browser_download_url", "")
-                        break
+                    if (name.endsWith(".apk", ignoreCase = true)) {
+                        val isAssetDebug = name.contains("-debug", ignoreCase = true)
+                        if (isCurrentDebug == isAssetDebug) {
+                            matchedDownloadUrl = asset.optString("browser_download_url", "")
+                            break
+                        }
                     }
                 }
             }
 
-            // 4. Fallback to universal debug APK
-            if (matchedDownloadUrl.isEmpty()) {
-                for (i in 0 until assets.length()) {
-                    val asset = assets.getJSONObject(i)
-                    val name = asset.optString("name", "")
-                    if (name.endsWith(".apk", ignoreCase = true) && name.contains("-universal-", ignoreCase = true)) {
-                        matchedDownloadUrl = asset.optString("browser_download_url", "")
-                        break
-                    }
-                }
-            }
-
-            // 5. Fallback to any APK
+            // 4. Fallback to any available APK
             if (matchedDownloadUrl.isEmpty()) {
                 for (i in 0 until assets.length()) {
                     val asset = assets.getJSONObject(i)

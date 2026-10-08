@@ -64,13 +64,15 @@ subprojects {
             resValue("string", "release_name", "v$versionName")
             resValue("integer", "release_code", "$versionCode")
 
-            ndk {
-                abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
+            if (!isApp) {
+                ndk {
+                    abiFilters += listOf("arm64-v8a", "x86_64")
+                }
             }
 
             externalNativeBuild {
                 cmake {
-                    abiFilters("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
+                    abiFilters("arm64-v8a", "x86_64")
                 }
             }
 
@@ -196,9 +198,9 @@ subprojects {
             splits {
                 abi {
                     isEnable = true
-                    isUniversalApk = true
+                    isUniversalApk = false
                     reset()
-                    include("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
+                    include("arm64-v8a", "x86_64")
                 }
             }
         }
