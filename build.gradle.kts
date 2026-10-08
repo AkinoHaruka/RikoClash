@@ -42,6 +42,30 @@ subprojects {
         return localProperties.getProperty(key)
     }
 
+    val gitCommitCount: Int = try {
+        val process = ProcessBuilder("git", "rev-list", "--count", "HEAD")
+            .directory(rootDir)
+            .redirectErrorStream(true)
+            .start()
+        val text = process.inputStream.bufferedReader().readText().trim()
+        process.waitFor()
+        text.toIntOrNull() ?: 660
+    } catch (_: Exception) {
+        660
+    }
+
+    val gitCommitHash: String = try {
+        val process = ProcessBuilder("git", "rev-parse", "--short", "HEAD")
+            .directory(rootDir)
+            .redirectErrorStream(true)
+            .start()
+        val text = process.inputStream.bufferedReader().readText().trim()
+        process.waitFor()
+        if (text.isNotBlank()) text else "unknown"
+    } catch (_: Exception) {
+        "unknown"
+    }
+
     extensions.configure<BaseExtension> {
         buildFeatures.buildConfig = true
         defaultConfig {
@@ -58,8 +82,8 @@ subprojects {
             minSdk = 21
             targetSdk = 35
 
-            versionName = "2.11.35"
-            versionCode = 211035
+            versionName = "2.11.35.$gitCommitCount"
+            versionCode = 211000 + gitCommitCount
 
             resValue("string", "release_name", "v$versionName")
             resValue("integer", "release_code", "$versionCode")
@@ -79,7 +103,7 @@ subprojects {
             if (!isApp) {
                 consumerProguardFiles("consumer-rules.pro")
             } else {
-                setProperty("archivesBaseName", "riko-clash-$versionName")
+                setProperty("archivesBaseName", "riko-clash-2.11.35-alpha")
             }
         }
 
@@ -154,11 +178,11 @@ subprojects {
                         keystore.inputStream().use(this::load)
                     }
 
-                    storeFile = rootProject.file(prop.getProperty("keystore.file")
+                    storeFile = rootProject.file(prop.getProperty("keystore.file")?.takeIf { it.isNotBlank() }
                         ?: "riko.keystore")
-                    storePassword = prop.getProperty("keystore.password") ?: "rikoclash"
-                    keyAlias = prop.getProperty("key.alias") ?: "riko"
-                    keyPassword = prop.getProperty("key.password") ?: "rikoclash"
+                    storePassword = prop.getProperty("keystore.password")?.takeIf { it.isNotBlank() } ?: "rikoclash"
+                    keyAlias = prop.getProperty("key.alias")?.takeIf { it.isNotBlank() } ?: "riko"
+                    keyPassword = prop.getProperty("key.password")?.takeIf { it.isNotBlank() } ?: "rikoclash"
                 }
             } else if (defaultKeystore.exists()) {
                 create("release") {
@@ -183,6 +207,7 @@ subprojects {
             named("debug") {
                 versionNameSuffix = ".debug"
                 if (isApp) applicationIdSuffix = ".debug"
+                signingConfig = signingConfigs.findByName("release")
             }
         }
 

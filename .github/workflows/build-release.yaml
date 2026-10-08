@@ -95,13 +95,14 @@ jobs:
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
-          touch signing.properties
-          echo keystore.password="$SIGNING_STORE_PASSWORD" > signing.properties
-          echo key.alias="$SIGNING_KEY_ALIAS" >> signing.properties
-          echo key.password="$SIGNING_KEY_PASSWORD" >> signing.properties
-            
-          echo "cat signing.properties"
-          cat signing.properties
+          if [ -n "$SIGNING_STORE_PASSWORD" ]; then
+            echo keystore.password="$SIGNING_STORE_PASSWORD" > signing.properties
+            echo key.alias="$SIGNING_KEY_ALIAS" >> signing.properties
+            echo key.password="$SIGNING_KEY_PASSWORD" >> signing.properties
+            cat signing.properties
+          else
+            echo "No custom signing secrets configured; falling back to repository riko.keystore"
+          fi
 
       - name: Release Build
         if: success()

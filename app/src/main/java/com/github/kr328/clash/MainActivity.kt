@@ -315,9 +315,9 @@ class MainActivity : BaseActivity<MainDesign>() {
 
     private fun isVersionNewer(remote: String, current: String): Boolean {
         fun extractNumbers(s: String): List<Int> {
-            val match = Regex("""(\d+)\.(\d+)\.(\d+)""").find(s)
+            val match = Regex("""(\d+)\.(\d+)\.(\d+)(?:\.(\d+))?""").find(s)
             return if (match != null) {
-                match.groupValues.drop(1).map { it.toIntOrNull() ?: 0 }
+                match.groupValues.drop(1).filter { it.isNotEmpty() }.map { it.toIntOrNull() ?: 0 }
             } else {
                 Regex("""\d+""").findAll(s).map { it.value.toIntOrNull() ?: 0 }.toList()
             }
@@ -326,12 +326,15 @@ class MainActivity : BaseActivity<MainDesign>() {
         val remoteNums = extractNumbers(remote)
         val currentNums = extractNumbers(current)
 
-        val size = maxOf(remoteNums.size, currentNums.size)
-        for (i in 0 until size) {
-            val r = remoteNums.getOrElse(i) { 0 }
-            val c = currentNums.getOrElse(i) { 0 }
-            if (r > c) return true
-            if (r < c) return false
+        if (remoteNums.isNotEmpty() && currentNums.isNotEmpty()) {
+            val size = maxOf(remoteNums.size, currentNums.size)
+            for (i in 0 until size) {
+                val r = remoteNums.getOrElse(i) { 0 }
+                val c = currentNums.getOrElse(i) { 0 }
+                if (r > c) return true
+                if (r < c) return false
+            }
+            return false
         }
 
         val cleanRemote = remote.trimStart('v', 'V').trim()
