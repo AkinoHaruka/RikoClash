@@ -97,6 +97,18 @@ jobs:
           path: |
             app/build/outputs/apk/alpha/release/*.apk
 
+      - name: Clean up obsolete release assets
+        if: ${{ success() && github.ref == 'refs/heads/main' }}
+        run: |
+          for asset in $(gh release view Prerelease-alpha --repo "$GITHUB_REPOSITORY" --json assets -q '.assets[].name' 2>/dev/null || true); do
+            case "$asset" in
+              *arm64-v8a*|*x86_64*) ;;
+              *) gh release delete-asset Prerelease-alpha "$asset" --repo "$GITHUB_REPOSITORY" --yes 2>/dev/null || true ;;
+            esac
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Publish to GitHub Releases
         uses: softprops/action-gh-release@v2
         if: ${{ success() && github.ref == 'refs/heads/main' }}
