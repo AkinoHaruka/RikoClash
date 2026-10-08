@@ -26,6 +26,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.withContext
+import android.net.Uri
+import androidx.appcompat.app.AlertDialog
+import org.json.JSONArray
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
 import java.util.concurrent.TimeUnit
 import com.github.kr328.clash.design.R as DesignR
 
@@ -77,6 +83,8 @@ class MainActivity : BaseActivity<MainDesign>() {
                             startActivity(HelpActivity::class.intent)
                         MainDesign.Request.OpenAbout ->
                             design.showAbout(queryAppVersionName())
+                        MainDesign.Request.CheckUpdate ->
+                            checkAppUpdate(design)
                     }
                 }
                 if (clashRunning) {
@@ -146,6 +154,163 @@ class MainActivity : BaseActivity<MainDesign>() {
         return withContext(Dispatchers.IO) {
             packageManager.getPackageInfo(packageName, 0).versionName + "\n" + Bridge.nativeCoreVersion().replace("_", "-")
         }
+    }
+
+    private data class UpdateInfo(
+        val hasNewVersion: Boolean,
+        val currentVersion: String,
+        val latestVersion: String,
+        val changelog: String,
+        val downloadUrl: String,
+        val releasePageUrl: String,
+    )
+
+    private suspend fun checkAppUpdate(design: MainDesign) {
+        design.showToast(DesignR.string.checking_update, ToastDuration.Short)
+        val info = withContext(Dispatchers.IO) {
+            fetchUpdateInfo()
+        }
+
+        if (info == null) {
+            design.showToast(DesignR.string.check_update_failed, ToastDuration.Long)
+            return
+        }
+
+        if (!info.hasNewVersion) {
+            design.showToast(DesignR.string.already_latest_version, ToastDuration.Short)
+            return
+        }
+
+        val message = buildString {
+            append(getString(DesignR.string.current_version_format, info.currentVersion))
+            append("\n")
+            append(getString(DesignR.string.latest_version_format, info.latestVersion))
+            if (info.changelog.isNotBlank()) {
+                append("\n\n")
+                append(info.changelog)
+            }
+        }
+
+        AlertDialog.Builder(this@MainActivity)
+            .setTitle(DesignR.string.new_version_found)
+            .setMessage(message)
+            .setPositiveButton(DesignR.string.download_update) { _, _ ->
+                val target = info.downloadUrl.ifEmpty { info.releasePageUrl }
+                try {
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(target)))
+                } catch (_: Exception) {
+                }
+            }
+            .setNegativeButton(DesignR.string.cancel, null)
+            .show()
+    }
+
+    private fun fetchUpdateInfo(): UpdateInfo? {
+        return try {
+            val endpoint = URL("https://api.github.com/repos/AkinoHaruka/RikoClash/releases")
+            val conn = (endpoint.openConnection() as HttpURLConnection).apply {
+                connectTimeout = 8000
+                readTimeout = 8000
+                setRequestProperty("Accept", "application/vnd.github.v3+json")
+                setRequestProperty("User-Agent", "RikoClash-Android")
+            }
+
+            if (conn.responseCode !in 200..299) {
+                conn.disconnect()
+                return null
+            }
+
+            val jsonText = conn.inputStream.bufferedReader().use { it.readText() }
+            conn.disconnect()
+
+            val array = JSONArray(jsonText)
+            if (array.length() == 0) return null
+
+            val latestRelease = array.getJSONObject(0)
+            val tagName = latestRelease.optString("tag_name", "").trim()
+            val releaseName = latestRelease.optString("name", "").trim()
+            val body = latestRelease.optString("body", "").trim()
+            val releaseUrl = latestRelease.optString("html_url", "https://github.com/AkinoHaruka/RikoClash/releases")
+            val assets = latestRelease.optJSONArray("assets") ?: JSONArray()
+
+            val currentVersionName = packageManager.getPackageInfo(packageName, 0).versionName ?: "0.0.0"
+
+            val supportedAbis = Build.SUPPORTED_ABIS ?: arrayOf("arm64-v8a")
+            var matchedDownloadUrl = ""
+
+            for (abi in supportedAbis) {
+                for (i in 0 until assets.length()) {
+                    val asset = assets.getJSONObject(i)
+                    val name = asset.optString("name", "")
+                    if (name.endsWith(".apk", ignoreCase = true) && name.contains("-$abi-", ignoreCase = true)) {
+                        matchedDownloadUrl = asset.optString("browser_download_url", "")
+                        break
+                    }
+                }
+                if (matchedDownloadUrl.isNotEmpty()) break
+            }
+
+            if (matchedDownloadUrl.isEmpty()) {
+                for (i in 0 until assets.length()) {
+                    val asset = assets.getJSONObject(i)
+                    val name = asset.optString("name", "")
+                    if (name.endsWith(".apk", ignoreCase = true) && name.contains("-universal-", ignoreCase = true)) {
+                        matchedDownloadUrl = asset.optString("browser_download_url", "")
+                        break
+                    }
+                }
+            }
+
+            if (matchedDownloadUrl.isEmpty()) {
+                for (i in 0 until assets.length()) {
+                    val asset = assets.getJSONObject(i)
+                    val name = asset.optString("name", "")
+                    if (name.endsWith(".apk", ignoreCase = true)) {
+                        matchedDownloadUrl = asset.optString("browser_download_url", "")
+                        break
+                    }
+                }
+            }
+
+            val hasNew = isVersionNewer(tagName.ifEmpty { releaseName }, currentVersionName)
+
+            UpdateInfo(
+                hasNewVersion = hasNew,
+                currentVersion = currentVersionName,
+                latestVersion = tagName.ifEmpty { releaseName },
+                changelog = body,
+                downloadUrl = matchedDownloadUrl,
+                releasePageUrl = releaseUrl,
+            )
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun isVersionNewer(remote: String, current: String): Boolean {
+        fun extractNumbers(s: String): List<Int> {
+            val match = Regex("""(\d+)\.(\d+)\.(\d+)""").find(s)
+            return if (match != null) {
+                match.groupValues.drop(1).map { it.toIntOrNull() ?: 0 }
+            } else {
+                Regex("""\d+""").findAll(s).map { it.value.toIntOrNull() ?: 0 }.toList()
+            }
+        }
+
+        val remoteNums = extractNumbers(remote)
+        val currentNums = extractNumbers(current)
+
+        val size = maxOf(remoteNums.size, currentNums.size)
+        for (i in 0 until size) {
+            val r = remoteNums.getOrElse(i) { 0 }
+            val c = currentNums.getOrElse(i) { 0 }
+            if (r > c) return true
+            if (r < c) return false
+        }
+
+        val cleanRemote = remote.trimStart('v', 'V').trim()
+        val cleanCurrent = current.trimStart('v', 'V').trim()
+        return cleanRemote.isNotEmpty() && cleanCurrent.isNotEmpty() && cleanRemote != cleanCurrent && cleanRemote.contains("alpha", ignoreCase = true) && !cleanCurrent.contains("debug", ignoreCase = true)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

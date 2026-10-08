@@ -374,4 +374,13 @@
     <string name="shortcut_start_long">Start Clash service</string>
     <string name="shortcut_stop_short">Stop Clash</string>
     <string name="shortcut_stop_long">Stop Clash service</string>
+
+    <string name="check_update">Check for Updates</string>
+    <string name="checking_update">Checking for updates…</string>
+    <string name="already_latest_version">Already up to date</string>
+    <string name="check_update_failed">Failed to check for updates, please check network connection</string>
+    <string name="new_version_found">New Version Found</string>
+    <string name="download_update">Download Update</string>
+    <string name="current_version_format">Current version: %1$s</string>
+    <string name="latest_version_format">Latest version: %1$s</string>
 </resources>

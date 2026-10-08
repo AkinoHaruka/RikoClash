@@ -283,4 +283,13 @@
     <string name="shortcut_start_long">启动 Clash 服务</string>
     <string name="shortcut_stop_short">停止 Clash</string>
     <string name="shortcut_stop_long">停止 Clash 服务</string>
+
+    <string name="check_update">检查更新</string>
+    <string name="checking_update">正在检查更新…</string>
+    <string name="already_latest_version">当前已是最新版本</string>
+    <string name="check_update_failed">检查更新失败，请检查网络连接</string>
+    <string name="new_version_found">发现新版本</string>
+    <string name="download_update">立即下载</string>
+    <string name="current_version_format">当前版本：%1$s</string>
+    <string name="latest_version_format">最新版本：%1$s</string>
 </resources>
