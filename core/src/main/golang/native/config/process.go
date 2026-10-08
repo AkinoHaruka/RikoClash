@@ -22,6 +22,7 @@ var processors = []processor{
 	patchGeneral,
 	patchProfile,
 	patchDns,
+	patchHosts,
 	patchTun,
 	patchListeners,
 	patchProviders,
@@ -81,6 +82,18 @@ func patchDns(cfg *config.RawConfig, _ string) error {
 		cfg.DNS.NameServer = append(cfg.DNS.NameServer, "system://")
 	}
 
+	return nil
+}
+
+func patchHosts(cfg *config.RawConfig, _ string) error {
+	if cfg.Hosts == nil {
+		cfg.Hosts = make(map[string]any)
+	}
+	for host, ips := range GetBootstrapHosts() {
+		if _, exists := cfg.Hosts[host]; !exists {
+			cfg.Hosts[host] = ips
+		}
+	}
 	return nil
 }
 

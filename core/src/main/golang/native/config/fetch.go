@@ -5,19 +5,24 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"net/netip"
 	U "net/url"
 	"os"
 	P "path"
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"cfa/native/app"
 
 	"github.com/metacubex/mihomo/adapter/provider"
 	clashHttp "github.com/metacubex/mihomo/component/http"
+	"github.com/metacubex/mihomo/component/resolver"
+	"github.com/metacubex/mihomo/log"
 	RB "github.com/metacubex/mihomo/rules/bundle"
 )
 
@@ -38,7 +43,159 @@ type fetchHeader struct {
 	ProfileUpdateInterval string
 }
 
+var (
+	bootstrapHostsLock sync.Mutex
+	bootstrapCache     = make(map[string][]netip.Addr)
+	dohClient          = &http.Client{
+		Timeout: 3 * time.Second,
+		Transport: &http.Transport{
+			DisableKeepAlives:   true,
+			TLSHandshakeTimeout: 2 * time.Second,
+		},
+	}
+)
+
+type dohResponse struct {
+	Status int `json:"Status"`
+	Answer []struct {
+		Name string `json:"name"`
+		Type int    `json:"type"`
+		TTL  int    `json:"TTL"`
+		Data string `json:"data"`
+	} `json:"Answer"`
+}
+
+func queryDoHEndpoint(ctx context.Context, endpoint string) ([]netip.Addr, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Accept", "application/dns-json")
+	req.Header.Set("User-Agent", "RikoClash-BootstrapDNS/1.0")
+
+	resp, err := dohClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("http status %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 64*1024))
+	if err != nil {
+		return nil, err
+	}
+
+	var doh dohResponse
+	if err := json.Unmarshal(body, &doh); err != nil {
+		return nil, err
+	}
+
+	var ips []netip.Addr
+	for _, ans := range doh.Answer {
+		if ans.Type == 1 || ans.Type == 28 { // A or AAAA
+			if addr, err := netip.ParseAddr(ans.Data); err == nil {
+				ips = append(ips, addr.Unmap())
+			}
+		}
+	}
+
+	if len(ips) == 0 {
+		return nil, fmt.Errorf("no IP in DoH response")
+	}
+
+	return ips, nil
+}
+
+func queryDoH(host string) []netip.Addr {
+	endpoints := []string{
+		fmt.Sprintf("https://223.5.5.5/resolve?name=%s&type=A", host),
+		fmt.Sprintf("https://223.6.6.6/resolve?name=%s&type=A", host),
+		fmt.Sprintf("https://1.1.1.1/dns-query?name=%s&type=A", host),
+	}
+
+	for _, ep := range endpoints {
+		ctx, cancel := context.WithTimeout(context.Background(), 2500*time.Millisecond)
+		ips, err := queryDoHEndpoint(ctx, ep)
+		cancel()
+		if err == nil && len(ips) > 0 {
+			return ips
+		}
+	}
+	return nil
+}
+
+func resolveBootstrapHost(rawUrl string) {
+	u, err := U.Parse(rawUrl)
+	if err != nil {
+		return
+	}
+	host := u.Hostname()
+	if host == "" {
+		return
+	}
+	if ip := net.ParseIP(host); ip != nil {
+		return
+	}
+
+	bootstrapHostsLock.Lock()
+	defer bootstrapHostsLock.Unlock()
+
+	if cachedIPs, ok := bootstrapCache[host]; ok && len(cachedIPs) > 0 {
+		if node, ok := resolver.DefaultHosts.Search(host, false); !ok || len(node.IPs) == 0 {
+			if hv, err := resolver.NewHostValueByIPs(cachedIPs); err == nil {
+				_ = resolver.DefaultHosts.Insert(host, hv)
+			}
+		}
+		return
+	}
+
+	if node, ok := resolver.DefaultHosts.Search(host, false); ok && len(node.IPs) > 0 {
+		bootstrapCache[host] = node.IPs
+		return
+	}
+
+	ips := queryDoH(host)
+	if len(ips) == 0 {
+		log.Warnln("[BootstrapDNS] failed to resolve host %s via DoH", host)
+		return
+	}
+
+	hv, err := resolver.NewHostValueByIPs(ips)
+	if err != nil {
+		log.Warnln("[BootstrapDNS] invalid HostValue for %s: %s", host, err)
+		return
+	}
+
+	if err := resolver.DefaultHosts.Insert(host, hv); err != nil {
+		log.Warnln("[BootstrapDNS] insert DefaultHosts failed for %s: %s", host, err)
+		return
+	}
+
+	bootstrapCache[host] = ips
+	log.Infoln("[BootstrapDNS] successfully resolved %s -> %v via DoH", host, ips)
+}
+
+func GetBootstrapHosts() map[string][]string {
+	bootstrapHostsLock.Lock()
+	defer bootstrapHostsLock.Unlock()
+
+	res := make(map[string][]string, len(bootstrapCache))
+	for h, ips := range bootstrapCache {
+		strIps := make([]string, 0, len(ips))
+		for _, ip := range ips {
+			strIps = append(strIps, ip.String())
+		}
+		res[h] = strIps
+	}
+	return res
+}
+
 func openUrl(ctx context.Context, url string) (io.ReadCloser, fetchHeader, error) {
+	resolveBootstrapHost(url)
+
 	response, err := clashHttp.HttpRequest(ctx, url, http.MethodGet, http.Header{"User-Agent": {"ClashMetaForAndroid/" + app.VersionName()}}, nil)
 
 	if err != nil {
