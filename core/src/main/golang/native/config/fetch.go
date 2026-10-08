@@ -53,7 +53,101 @@ var (
 			TLSHandshakeTimeout: 2 * time.Second,
 		},
 	}
+	knownFallbackHosts = map[string][]netip.Addr{
+		"vpn.riko.asia": {
+			netip.MustParseAddr("104.21.21.175"),
+			netip.MustParseAddr("172.67.199.169"),
+		},
+	}
 )
+
+func isFakeOrBogusIP(addr netip.Addr) bool {
+	addr = addr.Unmap()
+	if !addr.IsValid() || addr.IsUnspecified() || addr.IsLoopback() {
+		return true
+	}
+	if addr.Is4() {
+		b := addr.As4()
+		// 0.0.0.0/8
+		if b[0] == 0 {
+			return true
+		}
+		// 28.0.0.0/8 (Clash default Fake-IP pool)
+		if b[0] == 28 {
+			return true
+		}
+		// 198.18.0.0/15 (RFC 2544 benchmark / Standard Clash Fake-IP pool)
+		if b[0] == 198 && (b[1] == 18 || b[1] == 19) {
+			return true
+		}
+	} else if addr.Is6() {
+		b := addr.As16()
+		// 2001:2::/48 (RFC 5180 benchmark / Clash IPv6 Fake-IP pool)
+		if b[0] == 0x20 && b[1] == 0x01 && b[2] == 0x00 && b[3] == 0x02 {
+			return true
+		}
+		// fc00::/7 (Unique Local Address - ULA)
+		if (b[0] & 0xfe) == 0xfc {
+			return true
+		}
+		// fe80::/10 (Link-Local)
+		if b[0] == 0xfe && (b[1]&0xc0) == 0x80 {
+			return true
+		}
+		// 2001:db8::/32 (Documentation)
+		if b[0] == 0x20 && b[1] == 0x01 && b[2] == 0x0d && b[3] == 0xb8 {
+			return true
+		}
+	}
+	return false
+}
+
+func filterValidIPs(ips []netip.Addr) []netip.Addr {
+	var valid []netip.Addr
+	for _, ip := range ips {
+		ip = ip.Unmap()
+		if !isFakeOrBogusIP(ip) {
+			valid = append(valid, ip)
+		}
+	}
+	return valid
+}
+
+func queryUDP(host string) []netip.Addr {
+	dnsServers := []string{
+		"223.5.5.5:53",
+		"119.29.29.29:53",
+		"180.76.76.76:53",
+		"114.114.114.114:53",
+		"1.1.1.1:53",
+		"8.8.8.8:53",
+	}
+
+	for _, srv := range dnsServers {
+		r := &net.Resolver{
+			PreferGo: true,
+			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+				d := net.Dialer{
+					Timeout: 1500 * time.Millisecond,
+				}
+				return d.DialContext(ctx, "udp", srv)
+			},
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 2000*time.Millisecond)
+		ips, err := r.LookupNetIP(ctx, "ip4", host)
+		cancel()
+
+		if err == nil && len(ips) > 0 {
+			valid := filterValidIPs(ips)
+			if len(valid) > 0 {
+				log.Infoln("[BootstrapDNS] resolved %s -> %v via UDP (%s)", host, valid, srv)
+				return valid
+			}
+		}
+	}
+	return nil
+}
 
 type dohResponse struct {
 	Status int `json:"Status"`
@@ -102,8 +196,9 @@ func queryDoHEndpoint(ctx context.Context, endpoint string) ([]netip.Addr, error
 		}
 	}
 
+	ips = filterValidIPs(ips)
 	if len(ips) == 0 {
-		return nil, fmt.Errorf("no IP in DoH response")
+		return nil, fmt.Errorf("no valid IP in DoH response")
 	}
 
 	return ips, nil
@@ -121,6 +216,7 @@ func queryDoH(host string) []netip.Addr {
 		ips, err := queryDoHEndpoint(ctx, ep)
 		cancel()
 		if err == nil && len(ips) > 0 {
+			log.Infoln("[BootstrapDNS] resolved %s -> %v via DoH (%s)", host, ips, ep)
 			return ips
 		}
 	}
@@ -153,13 +249,31 @@ func resolveBootstrapHost(rawUrl string) {
 	}
 
 	if node, ok := resolver.DefaultHosts.Search(host, false); ok && len(node.IPs) > 0 {
-		bootstrapCache[host] = node.IPs
-		return
+		valid := filterValidIPs(node.IPs)
+		if len(valid) > 0 {
+			bootstrapCache[host] = valid
+			return
+		}
 	}
 
+	// 1. Direct DoH query over TLS 443 (immune to UDP port 53 transparent proxying / Fake-IP poisoning)
 	ips := queryDoH(host)
+
+	// 2. Fallback to direct UDP DNS query if DoH fails
 	if len(ips) == 0 {
-		log.Warnln("[BootstrapDNS] failed to resolve host %s via DoH", host)
+		ips = queryUDP(host)
+	}
+
+	// 3. Fallback to known static Anycast IPs
+	if len(ips) == 0 {
+		if fallback, ok := knownFallbackHosts[host]; ok && len(fallback) > 0 {
+			ips = fallback
+			log.Infoln("[BootstrapDNS] using static fallback Anycast IPs for %s -> %v", host, ips)
+		}
+	}
+
+	if len(ips) == 0 {
+		log.Warnln("[BootstrapDNS] failed to resolve host %s via all bootstrap methods", host)
 		return
 	}
 
@@ -175,7 +289,7 @@ func resolveBootstrapHost(rawUrl string) {
 	}
 
 	bootstrapCache[host] = ips
-	log.Infoln("[BootstrapDNS] successfully resolved %s -> %v via DoH", host, ips)
+	log.Infoln("[BootstrapDNS] successfully resolved %s -> %v via bootstrap DNS", host, ips)
 }
 
 func GetBootstrapHosts() map[string][]string {

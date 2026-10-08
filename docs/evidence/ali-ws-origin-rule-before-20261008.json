@@ -1,0 +1,27 @@
+{
+  "captured_date": "2026-10-08",
+  "source": "Edge ESA console, read-only",
+  "site": "riko.asia",
+  "plan": "free",
+  "original_rule": {
+    "name": "ali-vpn-origin-tls",
+    "enabled": true,
+    "expression": "(http.host in {\"ali.vpn.riko.asia\"})",
+    "origin_host": "vpn.riko.asia",
+    "origin_sni": "vpn.riko.asia",
+    "origin_scheme": "https",
+    "origin_https_port": 443,
+    "origin_read_timeout_override": null
+  },
+  "planned_addition": {
+    "name": "ali-vpn-ws-idle-300s",
+    "expression": "(http.host eq \"ali.vpn.riko.asia\" and http.request.uri.path eq \"/vless-ws\")",
+    "origin_host": "vpn.riko.asia",
+    "origin_sni": "vpn.riko.asia",
+    "origin_scheme": "https",
+    "origin_https_port": 443,
+    "origin_read_timeout_seconds": 300,
+    "position": "first"
+  },
+  "rollback": "Disable only the added WS rule. Preserve ali-vpn-origin-tls. Verify Google 204 and original origin fields."
+}
