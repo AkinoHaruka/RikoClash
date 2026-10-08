@@ -83,7 +83,7 @@ subprojects {
             targetSdk = 35
 
             versionName = "2.11.35.$gitCommitCount"
-            versionCode = 211000 + gitCommitCount
+            versionCode = 211035 + gitCommitCount
 
             resValue("string", "release_name", "v$versionName")
             resValue("integer", "release_code", "$versionCode")
@@ -103,7 +103,7 @@ subprojects {
             if (!isApp) {
                 consumerProguardFiles("consumer-rules.pro")
             } else {
-                setProperty("archivesBaseName", "riko-clash-2.11.35-alpha")
+                setProperty("archivesBaseName", "riko-clash-2.11.35")
             }
         }
 
