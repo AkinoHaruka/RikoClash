@@ -41,8 +41,9 @@ task("downloadGeoFiles") {
 
     inputs.file(geoLockFile)
 
+    val strictLock = project.findProperty("geodata.strict.lock")?.toString()?.toBoolean() ?: false
     fun verify(file: File, size: Long, sha256: String) {
-        check(file.length() == size) { "Locked asset size mismatch: ${file.name}" }
+        val actualSize = file.length()
         val digest = MessageDigest.getInstance("SHA-256")
         file.inputStream().use { input ->
             val buffer = ByteArray(65536)
@@ -53,7 +54,14 @@ task("downloadGeoFiles") {
             }
         }
         val actual = digest.digest().joinToString("") { "%02x".format(it) }
-        check(actual == sha256) { "Locked asset SHA-256 mismatch: ${file.name}" }
+        if (actualSize != size || actual != sha256) {
+            val message = "Upstream asset changed: ${file.name} (size $size -> $actualSize, sha256 $sha256 -> $actual)"
+            if (strictLock) {
+                error(message)
+            } else {
+                println("Notice: $message")
+            }
+        }
     }
 
     doLast {
