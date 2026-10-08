@@ -23,15 +23,10 @@ int mark_socket(void *interface, int fd) {
     return mark_socket_func ? mark_socket_func(interface, fd) : 0;
 }
 
-int query_socket_uid(void *interface, int protocol, char *source, char *target) {
+int query_socket_uid(void *interface, int protocol, const char *source, const char *target) {
     TRACE_METHOD();
 
-    int result = query_socket_uid_func(interface, protocol, source, target);
-
-    free(source);
-    free(target);
-
-    return result;
+    return query_socket_uid_func ? query_socket_uid_func(interface, protocol, source, target) : -1;
 }
 
 void complete(void *obj, char *error) {
